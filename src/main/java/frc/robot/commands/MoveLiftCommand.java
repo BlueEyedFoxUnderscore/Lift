@@ -11,7 +11,7 @@ public class MoveLiftCommand extends Command {
     
     private final static double UNDERSHOT_DISTANCE = 0.;
 
-    private DigitalInput theStopRightNowSwitch = Robot.theStopRightNowSwitch;
+    private DigitalInput SRNSwitchL = Robot.SRNSwitchL;
 
     double endPos_delta_rots, maxVelo_rpm;
     
@@ -47,7 +47,7 @@ public class MoveLiftCommand extends Command {
         this.accel_rpmps = acceleration;
         this.maxVelo_rpm = maxVelocity;
         
-        this.encoder = lift.getEncoder();
+        this.encoder = lift.getEncoderL();
         this.startTime_sec = System.currentTimeMillis()/1000.0;
         this.startPos_rot = encoder.getPosition();
 
@@ -86,7 +86,7 @@ public class MoveLiftCommand extends Command {
         System.out.println("velo " + newVelo_rpm);
         System.out.println("distRemain " + distRemain_rot);
 
-        if(theStopRightNowSwitch.get() == true){
+        if(SRNSwitchL.get() == true){
             stage = Stage.STOP;
         }        
 
@@ -126,7 +126,7 @@ public class MoveLiftCommand extends Command {
 
         if(stage == Stage.STOP) newVelo_rpm = 0;
         
-        lift.setVelo(newVelo_rpm * rMult);
+        lift.setVelo_pair(newVelo_rpm * rMult);
 
     }
 

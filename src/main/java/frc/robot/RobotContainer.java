@@ -1,7 +1,5 @@
 package frc.robot;
 
-import frc.robot.commands.LiftCommand;
-
 import java.util.function.DoubleSupplier;
 
 import edu.wpi.first.wpilibj2.command.Command;
@@ -12,10 +10,6 @@ public class RobotContainer {
   ////    new CommandXboxController(OperatorConstants.kDriverControllerPort);
   public static class SettableDoubleSupplier implements DoubleSupplier{
     double d;
-
-    public SettableDoubleSupplier(double d){
-      this.d = d;
-    }
 
     @Override
     public double getAsDouble() {
@@ -28,10 +22,6 @@ public class RobotContainer {
     }
   }
 
-  static LiftCommand c = new LiftCommand(Robot.lift, new SettableDoubleSupplier(0));
-
-  public static SettableDoubleSupplier liftSupplierThingy = new SettableDoubleSupplier(0);
-
   public RobotContainer() {
     configureBindings();
   }
@@ -40,6 +30,6 @@ public class RobotContainer {
   }
 
   public Command getAutonomousCommand() {
-    return c;
+    return null;
   }
 }
