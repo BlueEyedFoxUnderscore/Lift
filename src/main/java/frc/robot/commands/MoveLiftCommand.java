@@ -2,12 +2,16 @@ package frc.robot.commands;
 
 import com.revrobotics.RelativeEncoder;
 
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Robot;
 import frc.robot.subsystems.LiftSubsystem;
 
 public class MoveLiftCommand extends Command {
     
-    private final static double UNDERSHOT_DISTANCE = 20.;
+    private final static double UNDERSHOT_DISTANCE = 0.;
+
+    private DigitalInput theStopRightNowSwitch = Robot.theStopRightNowSwitch;
 
     double endPos_delta_rots, maxVelo_rpm;
     
@@ -30,26 +34,36 @@ public class MoveLiftCommand extends Command {
     private double decelPos_delta_rot;
     private double stopPos_delta_rot;
 
-    public MoveLiftCommand(LiftSubsystem lift, double distance, double maxVelocity, double acceleration){
+    private int rMult;
 
-        stage = Stage.ACCELERATE;
-
+    public MoveLiftCommand(LiftSubsystem lift, double position, double maxVelocity, double acceleration){
         addRequirements(lift);
-        this.lift = lift;
-        this.encoder = lift.getEncoder();
+        
+        assert(maxVelocity > 0); 
+        assert(acceleration > 0);
 
-        this.endPos_delta_rots = distance;
+        
+        this.lift = lift;
+        this.accel_rpmps = acceleration;
         this.maxVelo_rpm = maxVelocity;
+        
+        this.encoder = lift.getEncoder();
         this.startTime_sec = System.currentTimeMillis()/1000.0;
         this.startPos_rot = encoder.getPosition();
-        this.accel_rpmps = acceleration;
-        this.midPos_delta_rot = (distance - UNDERSHOT_DISTANCE)/2;
+
+        double currPos_rots = encoder.getPosition();
         double maxAccelTime = maxVelocity / acceleration;
-        System.out.println("maxAccelTime: " + maxAccelTime);
-        System.out.println("(.5 * accel_rpmps / 60 * maxAccelTime * maxAccelTime): " + (.5 * accel_rpmps / 60 * maxAccelTime * maxAccelTime));
-        this.decelPos_delta_rot = distance - (.5 * accel_rpmps / 60 * maxAccelTime * maxAccelTime) - UNDERSHOT_DISTANCE;
+        
+        this.rMult = position < currPos_rots? -1: 1;
+        this.endPos_delta_rots = (position - currPos_rots) * rMult;
+        this.midPos_delta_rot = (endPos_delta_rots - UNDERSHOT_DISTANCE)/2;
         this.stopPos_delta_rot = endPos_delta_rots - UNDERSHOT_DISTANCE;
+        this.decelPos_delta_rot = (endPos_delta_rots - (.5 * accel_rpmps / 60 * maxAccelTime * maxAccelTime) - UNDERSHOT_DISTANCE);
+        
+        System.out.println("(.5 * accel_rpmps / 60 * maxAccelTime * maxAccelTime): " + (.5 * accel_rpmps / 60 * maxAccelTime * maxAccelTime));
+        System.out.println("decelPos_delta_rot: " + decelPos_delta_rot);
         System.out.println("current: "+this.startPos_rot+"  midpoint: "+this.midPos_delta_rot+"  dcelPos: "+decelPos_delta_rot+"  stopPos: "+this.stopPos_delta_rot+"   endPos:"+endPos_delta_rots);
+        System.out.println("maxAccelTime: " + maxAccelTime);
     }
 
     @Override
@@ -60,28 +74,36 @@ public class MoveLiftCommand extends Command {
     public void execute(){
         double currTime_secs = System.currentTimeMillis()/1000.0;
         double elapTime_secs = currTime_secs - startTime_sec;
-
-        double pos_delta_rots = encoder.getPosition() - startPos_rot; 
-        double distRemain_rot = stopPos_delta_rot - pos_delta_rots;
-
-        //System.out.println(stage);
-        System.out.println("delta " + pos_delta_rots);
-        //System.out.println();
-
-        double newVelo_rpm = 0;
+        double pos_delta_rots = (encoder.getPosition() - startPos_rot) * rMult; 
+        double distRemain_rot = (stopPos_delta_rot - pos_delta_rots);
 
         
+        double newVelo_rpm = 0;
+        
+        System.out.println();
+        //System.out.println(stage);
+        System.out.println("delta " + pos_delta_rots);
+        System.out.println("velo " + newVelo_rpm);
+        System.out.println("distRemain " + distRemain_rot);
+
+        if(theStopRightNowSwitch.get() == true){
+            stage = Stage.STOP;
+        }        
+
         if(stage == Stage.ACCELERATE){
             newVelo_rpm = elapTime_secs * accel_rpmps;
+            
+            System.out.println("pos_delta_rots" + pos_delta_rots);
+            System.out.println("midPos_delta_rot" + midPos_delta_rot);
 
             if (pos_delta_rots >= midPos_delta_rot) {
                 stage = Stage.DECELERATE;
                 System.out.println("Switch to DECELERATE");
             }
             else if (newVelo_rpm >= maxVelo_rpm){
-                System.out.println("Switch to CRUISE");
                 stage = Stage.CRUISE;
                 newVelo_rpm = maxVelo_rpm;
+                System.out.println("Switch to CRUISE");
             }
         }
         
@@ -104,7 +126,7 @@ public class MoveLiftCommand extends Command {
 
         if(stage == Stage.STOP) newVelo_rpm = 0;
         
-        lift.setVelo(newVelo_rpm);
+        lift.setVelo(newVelo_rpm * rMult);
 
     }
 

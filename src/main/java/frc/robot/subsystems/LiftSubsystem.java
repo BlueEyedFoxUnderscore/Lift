@@ -12,12 +12,12 @@ public class LiftSubsystem extends SubsystemBase {
 
     public void setVelo(double speed) {
         pidController.setReference(speed, CANSparkMax.ControlType.kVelocity);
-        System.out.println("setVelo: Set speed to " + speed);
+        //System.out.println("setVelo: Set speed to " + speed);
     }
 
     public void setPos(double pos){
-        //pidController.setReference(pos, CANSparkMax.ControlType.kPosition);
-        System.out.println("setSpeed: Did not set position to" + pos);
+        pidController.setReference(pos, CANSparkMax.ControlType.kPosition);
+        //System.out.println("setSpeed: Did not set position to" + pos);
     }
 
     public RelativeEncoder getEncoder(){
