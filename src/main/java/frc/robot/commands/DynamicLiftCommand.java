@@ -2,8 +2,6 @@ package frc.robot.commands;
 
 import java.util.function.DoubleSupplier;
 
-import com.revrobotics.RelativeEncoder;
-
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Robot;
 import frc.robot.subsystems.LiftSubsystem;
@@ -15,17 +13,12 @@ public class DynamicLiftCommand extends Command {
 
     private double xNow, a, vNext, vNow = 0;
 
-    private RelativeEncoder encoderL;
     private final double vMax;
-    private RelativeEncoder encoderR;
-
     public DynamicLiftCommand(LiftSubsystem lift, DoubleSupplier xFinal, double accel, double vNow, double vMax) {
         this.lift = lift;
         this.xFin = xFinal;
         this.vNow = vNow;
         this.vMax = vMax;
-        this.encoderL = lift.getEncoderL();
-        this.encoderR = lift.getEncoderR();
         this.a = accel;
     }
 
@@ -46,7 +39,7 @@ public class DynamicLiftCommand extends Command {
     }
 
     public void cycleL() {
-        xNow = encoderL.getPosition();
+        xNow = lift.getPositionL();
 
         double xErr = xFin.getAsDouble() - xNow;
 
@@ -70,7 +63,7 @@ public class DynamicLiftCommand extends Command {
     }
 
     public void cycleR() {
-        xNow = encoderR.getPosition();
+        xNow = lift.getPositionR();
 
         double xErr = xFin.getAsDouble() - xNow;
 
