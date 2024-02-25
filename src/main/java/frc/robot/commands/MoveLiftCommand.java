@@ -47,7 +47,7 @@ public class MoveLiftCommand extends Command {
         this.accel_rpmps = acceleration;
         this.maxVelo_rpm = maxVelocity;
         
-        this.encoder = lift.getEncoderL();
+        this.encoder = lift.getEncoder();
         this.startTime_sec = System.currentTimeMillis()/1000.0;
         this.startPos_rot = encoder.getPosition();
 
@@ -126,7 +126,7 @@ public class MoveLiftCommand extends Command {
 
         if(stage == Stage.STOP) newVelo_rpm = 0;
         
-        lift.setVelo_pair(newVelo_rpm * rMult);
+        lift.setVelo(newVelo_rpm * rMult);
 
     }
 
