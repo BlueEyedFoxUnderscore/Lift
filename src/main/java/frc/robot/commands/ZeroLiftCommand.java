@@ -36,7 +36,7 @@ public class ZeroLiftCommand extends Command{
         switch(state){
             case DOWN_QUICK:
                 lift.setVelo(-1750);
-                if(lift.SRNSwitch.get()) setState(State.UP_QUICK);
+                if(lift.getSRN()) setState(State.UP_QUICK);
                 break;
             case UP_QUICK:
                 try {
@@ -44,11 +44,11 @@ public class ZeroLiftCommand extends Command{
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                if(!lift.SRNSwitch.get()) setState(State.DOWN_SLOW);
+                if(!lift.getSRN()) setState(State.DOWN_SLOW);
                 break;
             case DOWN_SLOW:
                 lift.setVelo(-100);
-                if(lift.SRNSwitch.get()) setState(State.UP_SLOW);
+                if(lift.getSRN()) setState(State.UP_SLOW);
                 break;
             case UP_SLOW:
                 try {
@@ -56,7 +56,7 @@ public class ZeroLiftCommand extends Command{
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                if(!lift.SRNSwitch.get()) setState(State.STOP);
+                if(!lift.getSRN()) setState(State.STOP);
                 break;
             case STOP:
                 lift.setVelo(0);

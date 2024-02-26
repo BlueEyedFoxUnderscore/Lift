@@ -7,16 +7,20 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkPIDController;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.commands.DeltaLiftCommand;
 import frc.robot.commands.DynamicLiftCommand;
-import frc.robot.commands.MoveLiftCommand;
 import frc.robot.commands.ZeroLiftCommand;
 import frc.robot.subsystems.LiftSubsystem;
 
 public class Robot extends TimedRobot {
+  
+  public class _c {
+  }
 
   public static DigitalInput 
     SRNSwitchL = new DigitalInput(LiftSubsystem._c.SRN_ID_L), 
@@ -29,9 +33,12 @@ public class Robot extends TimedRobot {
     kP, kI, kD, kIz, kFF, kMaxOutput, kMinOutput,
     kP_r, kI_r, kD_r, kIz_r, kFF_r, kMaxOutput_r, kMinOutput_r;
   private Command m_autonomousCommand;
+  private static Servo 
+    RRL = new Servo(LiftSubsystem._c.RR_ID_L),
+    RRR = new Servo(LiftSubsystem._c.RR_ID_R);
   static LiftSubsystem 
-    liftL = new LiftSubsystem(lift_lMotor, SRNSwitchL, LiftSubsystem._c.RATIO_L),
-    liftR = new LiftSubsystem(lift_rMotor, SRNSwitchR, LiftSubsystem._c.RATIO_R);
+    liftL = new LiftSubsystem(lift_lMotor, SRNSwitchL, LiftSubsystem._c.RATIO_L, RRL, false),
+    liftR = new LiftSubsystem(lift_rMotor, SRNSwitchR, LiftSubsystem._c.RATIO_R, RRR, false);
   private RobotContainer m_robotContainer;
 
   @Override
@@ -83,15 +90,22 @@ public class Robot extends TimedRobot {
     liftL.setVelo(0);
     liftR.setVelo(0);
 
+    new ZeroLiftCommand(liftL);
+    new ZeroLiftCommand(liftR);
+
+
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
+
     SmartDashboard.putBoolean("Zero Lift", false);
-  
+    SmartDashboard.putBoolean("Start move", false);
+    SmartDashboard.putBoolean("Lock Lift", false);
+
     SmartDashboard.putNumber("Target Position", 0);
     SmartDashboard.putNumber("Max Velocity", 5000);
     SmartDashboard.putNumber("Acceleration", 20000);
-    SmartDashboard.putBoolean("Start move", false);
+    SmartDashboard.putNumber("Delta (\u0394) Position", 0);
   }
 
   @Override
@@ -110,7 +124,14 @@ public class Robot extends TimedRobot {
       }, 20000, 0, 5000).schedule();
     else SmartDashboard.putBoolean("Start Dynamo", false);
 
-
+    if(SmartDashboard.getBoolean("Lock Lift", true)){
+      liftL.lock();
+      liftR.lock();
+    }
+    else {
+      liftL.unlock();
+      liftR.unlock();
+    }
     SmartDashboard.putBoolean("SRN Left", SRNSwitchL.get());
     SmartDashboard.putBoolean("SRN Right", SRNSwitchR.get());
     setConstants_l();
@@ -122,18 +143,19 @@ public class Robot extends TimedRobot {
     }
   
     if(SmartDashboard.getBoolean("Start move", false)){
-      SmartDashboard.putBoolean("Start move", false);
-      (new MoveLiftCommand(
+      double 
+        delta          = SmartDashboard.getNumber("Delta (\u0394) Position", 0     ), 
+        wantedPosition = SmartDashboard.getNumber("Target Position"        , 0     ), 
+        maxVelocity    = SmartDashboard.getNumber("Max Velocity"           , 5000  ),
+        acceleration   = SmartDashboard.getNumber("Acceleration"           , 200000);
+
+      (new DeltaLiftCommand(
+        delta, 
+        wantedPosition, 
+        maxVelocity, 
+        acceleration,
         liftL, 
-        SmartDashboard.getNumber("Target Position", 0) * LiftSubsystem._c.RATIO_L, 
-        SmartDashboard.getNumber("Max Velocity", 5000), 
-        SmartDashboard.getNumber("Acceleration", 200000)
-      )).schedule();
-      (new MoveLiftCommand(
-        liftR, 
-        SmartDashboard.getNumber("Target Position", 0) * LiftSubsystem._c.RATIO_R, 
-        SmartDashboard.getNumber("Max Velocity", 5000), 
-        SmartDashboard.getNumber("Acceleration", 200000)
+        liftR
       )).schedule();
     }
     else SmartDashboard.putBoolean("Start move", false);
