@@ -18,6 +18,7 @@ public class ZeroLiftCommand extends Command{
 
     @Override
     public void initialize(){
+        lift.lock();
         addRequirements(lift);
         setState(State.DOWN_QUICK);
     }
@@ -35,10 +36,12 @@ public class ZeroLiftCommand extends Command{
     public void cycle(){
         switch(state){
             case DOWN_QUICK:
+                lift.lock();
                 lift.setVelo(-1750);
                 if(lift.getSRN()) setState(State.UP_QUICK);
                 break;
             case UP_QUICK:
+                lift.unlock();
                 try {
                     lift.setVelo_override(1750);
                 } catch (Exception e) {
@@ -47,10 +50,12 @@ public class ZeroLiftCommand extends Command{
                 if(!lift.getSRN()) setState(State.DOWN_SLOW);
                 break;
             case DOWN_SLOW:
+                lift.lock();
                 lift.setVelo(-100);
                 if(lift.getSRN()) setState(State.UP_SLOW);
                 break;
             case UP_SLOW:
+                lift.unlock();
                 try {
                     lift.setVelo_override(100);
                 } catch (Exception e) {

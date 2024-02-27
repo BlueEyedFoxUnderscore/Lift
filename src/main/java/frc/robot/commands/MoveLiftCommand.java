@@ -13,11 +13,11 @@ public class MoveLiftCommand extends Command {
 
     private DigitalInput SRNSwitchL = Robot.SRNSwitchL;
 
-    double endPos_delta_rots, maxVelo_rpm;
+    double endPos_delta, maxVelo;
     
-    private double midPos_delta_rot;
+    private double midPos_delta;
 
-    private double startTime_sec, accel_rpmps;
+    private double startTime, accel;
     
     private LiftSubsystem lift;
 
@@ -29,10 +29,10 @@ public class MoveLiftCommand extends Command {
     
     private Stage stage;
 
-    private double startPos_rot;
+    private double startPos;
 
-    private double decelPos_delta_rot;
-    private double stopPos_delta_rot;
+    private double decelPos_delta;
+    private double stopPos_delta;
 
     private int rMult;
 
@@ -44,94 +44,104 @@ public class MoveLiftCommand extends Command {
 
         
         this.lift = lift;
-        this.accel_rpmps = acceleration;
-        this.maxVelo_rpm = maxVelocity;
+        this.accel = acceleration;
+        this.maxVelo = maxVelocity;
         
         this.encoder = lift.getEncoder();
-        this.startTime_sec = System.currentTimeMillis()/1000.0;
-        this.startPos_rot = encoder.getPosition();
+        this.startTime = System.currentTimeMillis()/1000.0;
+        this.startPos = encoder.getPosition();
 
-        double currPos_rots = encoder.getPosition();
+        double currPos = encoder.getPosition();
         double maxAccelTime = maxVelocity / acceleration;
         
-        this.rMult = position < currPos_rots? -1: 1;
-        this.endPos_delta_rots = (position - currPos_rots) * rMult;
-        this.midPos_delta_rot = (endPos_delta_rots - UNDERSHOT_DISTANCE)/2;
-        this.stopPos_delta_rot = endPos_delta_rots - UNDERSHOT_DISTANCE;
-        this.decelPos_delta_rot = (endPos_delta_rots - (.5 * accel_rpmps / 60 * maxAccelTime * maxAccelTime) - UNDERSHOT_DISTANCE);
+        this.rMult = position < currPos? -1: 1;
+        this.endPos_delta = (position - currPos) * rMult;
+        this.midPos_delta = (endPos_delta - UNDERSHOT_DISTANCE)/2;
+        this.stopPos_delta = endPos_delta - UNDERSHOT_DISTANCE;
+        this.decelPos_delta = (endPos_delta - (.5 * accel / 60 * maxAccelTime * maxAccelTime) - UNDERSHOT_DISTANCE);
         
-        System.out.println("(.5 * accel_rpmps / 60 * maxAccelTime * maxAccelTime): " + (.5 * accel_rpmps / 60 * maxAccelTime * maxAccelTime));
-        System.out.println("decelPos_delta_rot: " + decelPos_delta_rot);
-        System.out.println("current: "+this.startPos_rot+"  midpoint: "+this.midPos_delta_rot+"  dcelPos: "+decelPos_delta_rot+"  stopPos: "+this.stopPos_delta_rot+"   endPos:"+endPos_delta_rots);
+        System.out.println("(.5 * accel_rpmps / 60 * maxAccelTime * maxAccelTime): " + (.5 * accel / 60 * maxAccelTime * maxAccelTime));
+        System.out.println("decelPos_delta_rot: " + decelPos_delta);
+        System.out.println("current: "+this.startPos+"  midpoint: "+this.midPos_delta+"  dcelPos: "+decelPos_delta+"  stopPos: "+this.stopPos_delta+"   endPos:"+endPos_delta);
         System.out.println("maxAccelTime: " + maxAccelTime);
     }
 
     @Override
     public void initialize(){
         stage = Stage.ACCELERATE;
+        if(this.stopPos_delta <= 0) lift.lock();
+        else lift.unlock();
+        
+        double lockTime_sec = System.currentTimeMillis();
+        while(lockTime_sec + 10 < System.currentTimeMillis()){}
     }
 
     public void execute(){
-        double currTime_secs = System.currentTimeMillis()/1000.0;
-        double elapTime_secs = currTime_secs - startTime_sec;
-        double pos_delta_rots = (encoder.getPosition() - startPos_rot) * rMult; 
-        double distRemain_rot = (stopPos_delta_rot - pos_delta_rots);
+        double currTime = System.currentTimeMillis()/1000.0;
+        double elapTime = currTime - startTime;
+        double pos_delta = (encoder.getPosition() - startPos) * rMult; 
+        double distRemain = (stopPos_delta - pos_delta);
 
         
-        double newVelo_rpm = 0;
+        double newVelo = 0;
         
         System.out.println();
         //System.out.println(stage);
-        System.out.println("delta " + pos_delta_rots);
-        System.out.println("velo " + newVelo_rpm);
-        System.out.println("distRemain " + distRemain_rot);
+        System.out.println("delta " + pos_delta);
+        System.out.println("velo " + newVelo);
+        System.out.println("distRemain " + distRemain);
 
         if(SRNSwitchL.get() == true){
             stage = Stage.STOP;
         }        
 
         if(stage == Stage.ACCELERATE){
-            newVelo_rpm = elapTime_secs * accel_rpmps;
+            newVelo = elapTime * accel;
             
-            System.out.println("pos_delta_rots" + pos_delta_rots);
-            System.out.println("midPos_delta_rot" + midPos_delta_rot);
+            System.out.println("pos_delta_rots" + pos_delta);
+            System.out.println("midPos_delta_rot" + midPos_delta);
 
-            if (pos_delta_rots >= midPos_delta_rot) {
+            if (pos_delta >= midPos_delta) {
                 stage = Stage.DECELERATE;
                 System.out.println("Switch to DECELERATE");
             }
-            else if (newVelo_rpm >= maxVelo_rpm){
+            else if (newVelo >= maxVelo){
                 stage = Stage.CRUISE;
-                newVelo_rpm = maxVelo_rpm;
+                newVelo = maxVelo;
                 System.out.println("Switch to CRUISE");
             }
         }
         
         if(stage == Stage.CRUISE){
-            newVelo_rpm = maxVelo_rpm;
-            if (pos_delta_rots >= decelPos_delta_rot) {
+            newVelo = maxVelo;
+            if (pos_delta >= decelPos_delta) {
                 stage = Stage.DECELERATE;
                 System.out.println("Switch to DECELERATE");
             }
         }
         
         if(stage == Stage.DECELERATE) {
-            System.out.println("distRemain: " + distRemain_rot);
-            if (pos_delta_rots >= stopPos_delta_rot) {
+            System.out.println("distRemain: " + distRemain);
+            if (pos_delta >= stopPos_delta) {
                 System.out.println("Switch to STOP");
                 stage = Stage.STOP;
             }
-            else newVelo_rpm = Math.sqrt(2.0 * distRemain_rot * accel_rpmps * 60);
+            else newVelo = Math.sqrt(2.0 * distRemain * accel * 60);
         }
 
-        if(stage == Stage.STOP) newVelo_rpm = 0;
+        if(stage == Stage.STOP) newVelo = 0;
         
-        lift.setVelo(newVelo_rpm * rMult);
+        lift.setVelo(newVelo * rMult);
 
     }
 
     @Override
     public boolean isFinished(){
         return stage == Stage.STOP;
+    }
+
+    public boolean waitMillis(int timeoutMillis){
+        try{wait(timeoutMillis);}catch (InterruptedException e) {return true;}
+        return false;
     }
 }
