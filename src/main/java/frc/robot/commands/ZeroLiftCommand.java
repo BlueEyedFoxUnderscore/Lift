@@ -1,6 +1,7 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Constants;
 import frc.robot.subsystems.LiftSubsystem;
 
 public class ZeroLiftCommand extends Command{
@@ -25,15 +26,6 @@ public class ZeroLiftCommand extends Command{
 
     @Override
     public void execute(){
-        cycle();
-    }
-
-    @Override
-    public boolean isFinished(){
-        return this.isFinished;
-    }
-
-    public void cycle(){
         switch(state){
             case DOWN_QUICK:
                 lift.lock();
@@ -71,8 +63,13 @@ public class ZeroLiftCommand extends Command{
         }
     }
 
+    @Override
+    public boolean isFinished(){
+        return this.isFinished;
+    }
+
     private void setState(State state){
-        System.out.println(this.getName() + "/" + (lift.motor.getDeviceId() == 12? "LEFT": "RIGHT") + ": Set state to " + state);
+        if(Constants.DEBUG_MODE) System.out.println(this.getName() + "/" + (lift.motor.getDeviceId() == 12? "LEFT": "RIGHT") + ": Set state to " + state);
         this.state = state;
     }
 }

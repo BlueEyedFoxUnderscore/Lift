@@ -16,7 +16,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.commands.DeltaLiftCommand;
 import frc.robot.commands.DynamicDeltaLiftCommand;
 import frc.robot.commands.DynamicLiftCommand;
-import frc.robot.commands.ZeroLiftCommand;
+import frc.robot.commands.EncoderZeroLiftCommand;
 import frc.robot.subsystems.LiftSubsystem;
 
 public class Robot extends TimedRobot {
@@ -41,8 +41,8 @@ public class Robot extends TimedRobot {
     RRL = new Servo(LiftSubsystem._c.RR_ID_L),
     RRR = new Servo(LiftSubsystem._c.RR_ID_R);
   static LiftSubsystem 
-    liftL = new LiftSubsystem(lift_lMotor, SRNSwitchL, LiftSubsystem._c.RATIO_L, RRL, false),
-    liftR = new LiftSubsystem(lift_rMotor, SRNSwitchR, LiftSubsystem._c.RATIO_R, RRR, false);
+    liftL = new LiftSubsystem(lift_lMotor, SRNSwitchL, LiftSubsystem._c.RATIO_L, RRL, LiftSubsystem._c.REVERSED_L, LiftSubsystem._c.LOCK_REVERSED_L),
+    liftR = new LiftSubsystem(lift_rMotor, SRNSwitchR, LiftSubsystem._c.RATIO_R, RRR, LiftSubsystem._c.REVERSED_R, LiftSubsystem._c.LOCK_REVERSED_R);
   private RobotContainer m_robotContainer;
 
   @Override
@@ -55,7 +55,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void robotPeriodic() {
-    //putConstants();
+    //putConstants();i
     setConstants_l();
     setConstants_r();
     CommandScheduler.getInstance().run();
@@ -94,8 +94,8 @@ public class Robot extends TimedRobot {
     liftL.setVelo(0);
     liftR.setVelo(0);
 
-    new ZeroLiftCommand(liftL);
-    new ZeroLiftCommand(liftR);
+    new EncoderZeroLiftCommand(liftL);
+    new EncoderZeroLiftCommand(liftR);
 
 
     if (m_autonomousCommand != null) {
@@ -113,6 +113,10 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("Delta (\u0394) Position", 0);
   }
 
+  boolean liftLocked_l = false;
+  boolean liftLocked_r = false;
+
+
   @Override
   public void teleopPeriodic() {
     DoubleSupplier supplier = new DoubleSupplier() { 
@@ -126,7 +130,8 @@ public class Robot extends TimedRobot {
         private double idk(){return Double.NaN;}
       
       };
-    if(SmartDashboard.getBoolean("Start Dynamo", false)){
+    
+      if(SmartDashboard.getBoolean("Start Dynamo", false)){
       new DynamicLiftCommand(liftL, supplier, 20000, 0, 5000).schedule();
       new DynamicLiftCommand(liftL, supplier, 20000, 0, 5000).schedule();
     }
@@ -136,20 +141,25 @@ public class Robot extends TimedRobot {
     }
     
     else SmartDashboard.putBoolean("Start Dynamo", false);
-
-    if(SmartDashboard.getBoolean("Lock Lift Left", true)) liftL.lock(); 
-    else liftL.unlock();
-
-    if(SmartDashboard.getBoolean("Lock Lift Right", true)) liftR.lock();
-    else liftR.unlock();
+ 
+    if(SmartDashboard.getBoolean("Lock Lift Left", true) != liftLocked_l){
+      if(liftLocked_l) liftL.unlock();
+      else liftL.lock();
+      liftLocked_l = !liftLocked_l;
+    }
+    if(SmartDashboard.getBoolean("Lock Lift Right", true) != liftLocked_r){
+      if(liftLocked_r) liftR.unlock();
+      else liftR.lock();
+      liftLocked_r = !liftLocked_r;
+    }
 
     SmartDashboard.putBoolean("SRN Left", SRNSwitchL.get());
     SmartDashboard.putBoolean("SRN Right", SRNSwitchR.get());
     setConstants_l();
     setConstants_r();
     if (SmartDashboard.getBoolean("Zero Lift", false)) {
-      (new ZeroLiftCommand(liftL)).schedule();
-      (new ZeroLiftCommand(liftR)).schedule();
+      (new EncoderZeroLiftCommand(liftL)).schedule();
+      (new EncoderZeroLiftCommand(liftR)).schedule();
       SmartDashboard.putBoolean("Zero Lift", false);
     }
   
@@ -225,7 +235,7 @@ public class Robot extends TimedRobot {
       kFF = ff;
     }
     if ((max != kMaxOutput) || (min != kMinOutput)) {
-      l_pidController.setOutputRange(min, max);
+      //l_pidController.setOutputRange(min, max);
       kMinOutput = min;
       kMaxOutput = max;
     }
@@ -264,7 +274,7 @@ public class Robot extends TimedRobot {
       kFF_r = ff;
     }
     if ((max != kMaxOutput_r) || (min != kMinOutput_r)) {
-      r_pidController.setOutputRange(min, max);
+      //r_pidController.setOutputRange(min, max);
       kMinOutput_r = min;
       kMaxOutput_r = max;
     }
