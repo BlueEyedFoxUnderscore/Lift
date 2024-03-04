@@ -16,7 +16,6 @@ public class ZeroLiftCommand extends Command{
 
     public ZeroLiftCommand(LiftSubsystem subsystem){
         this.lift = subsystem;
-        lift.refresh();
     }
 
     @Override

@@ -5,7 +5,6 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
 import com.revrobotics.CANSparkBase.ControlType;
 
-import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
@@ -15,8 +14,7 @@ public class LiftSubsystem extends SubsystemBase {
     private final CANSparkMax motor;
     RelativeEncoder encoder;
     SparkPIDController pid;
-    private final DigitalInput SRNSwitch;
-    private final double ratio;
+
     private final Servo servo;
     private final boolean reversed;
     private final boolean lockReversed;
@@ -33,8 +31,8 @@ public class LiftSubsystem extends SubsystemBase {
 
     public static class _c {
         public static final double DEFAULT_ACCELERATION = 20000, DEFAULT_VELOCITY_MAX = 5000;
-        public static final int ID_L = 12, ID_R = 13, SRN_ID_L = 0, SRN_ID_R = 1, RR_ID_L = 8, RR_ID_R = 9;
-        public static final double RATIO_L = 1, RATIO_R = 1, liftMaxValue = 325;
+        public static final int ID_L = 12, ID_R = 13, RR_ID_L = 8, RR_ID_R = 9;
+        public static final double liftMaxValue = 325;
         public static final boolean REVERSED_L = false, REVERSED_R = false, LOCK_REVERSED_L = true, LOCK_REVERSED_R = false;
     }
 
@@ -99,31 +97,18 @@ public class LiftSubsystem extends SubsystemBase {
         }
     }
 
-    public LiftSubsystem(CANSparkMax motor, DigitalInput SRNSwitch, double ratio, Servo servo, boolean reversed, boolean lockReversed){
+    public LiftSubsystem(CANSparkMax motor, Servo servo, boolean reversed, boolean lockReversed){
         this.motor = motor;
         this.encoder = motor.getEncoder();
         this.pid = motor.getPIDController();
-        this.SRNSwitch = SRNSwitch;
-        this.ratio = ratio;
         this.servo = servo;
         this.reversed = reversed;
         this.lockReversed = lockReversed;
     }
 
     public void setVelo(double speed) {
-        pid.setReference(SRNSwitch.get()? 0: speed * (reversed? -1: 1) * ratio, CANSparkMax.ControlType.kVelocity);
-        if(Constants.DEBUG_MODE) System.out.println("Set speed for ID " + getID() + " to " + speed * (reversed? -1: 1) * ratio);
-    }
-
-    public void setVelo_override(double speed) throws Exception {
-        if(speed > 1750) throw new Exception("Speed too high for override.");
-        pid.setReference(speed * (reversed? -1: 1) * ratio , CANSparkMax.ControlType.kVelocity);
-    }
-
-    @Deprecated
-    public void setPosPID(double pos) {
-        pid.setReference(pos * ratio, CANSparkMax.ControlType.kPosition);
-        if(Constants.DEBUG_MODE) System.out.println("Set position for ID " + getID() + " to " + pos);
+        pid.setReference(speed * (reversed? -1: 1), CANSparkMax.ControlType.kVelocity);
+        if(Constants.DEBUG_MODE) System.out.println("Set speed for ID " + getID() + " to " + speed * (reversed? -1: 1));
     }
 
     public double getVelocity() {
@@ -131,16 +116,11 @@ public class LiftSubsystem extends SubsystemBase {
     }
 
     public RelativeEncoder getEncoder() {
-        return new RatioReversibleEncoder(encoder, ratio, reversed);
+        return new RatioReversibleEncoder(encoder, 1, reversed);
     }
 
     public double getPosition() {
         return encoder.getPosition();
-    }
-
-    public void refresh(){
-        encoder = motor.getEncoder();
-        pid = motor.getPIDController();
     }
 
     public void lock(){
@@ -165,10 +145,6 @@ public class LiftSubsystem extends SubsystemBase {
             desiredStateIsUnlocked = true;
             firstServoCommand = false;
         }
-    }
-
-    public boolean getSRN(){
-        return SRNSwitch.get();
     }
 
     public void setMaxOutput(double max){
