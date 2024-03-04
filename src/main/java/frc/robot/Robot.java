@@ -1,8 +1,6 @@
 
 package frc.robot;
 
-import java.util.function.DoubleSupplier;
-
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkPIDController;
 import com.revrobotics.CANSparkLowLevel.MotorType;
@@ -13,10 +11,8 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import frc.robot.commands.DeltaLiftCommand;
 import frc.robot.commands.DynamicDeltaLiftCommand;
-import frc.robot.commands.DynamicLiftCommand;
-import frc.robot.commands.EncoderZeroLiftCommand;
+import frc.robot.commands.ZeroLiftCommand;
 import frc.robot.subsystems.LiftSubsystem;
 
 public class Robot extends TimedRobot {
@@ -94,8 +90,8 @@ public class Robot extends TimedRobot {
     liftL.setVelo(0);
     liftR.setVelo(0);
 
-    new EncoderZeroLiftCommand(liftL);
-    new EncoderZeroLiftCommand(liftR);
+    new ZeroLiftCommand(liftL);
+    new ZeroLiftCommand(liftR);
 
 
     if (m_autonomousCommand != null) {
@@ -119,23 +115,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
-    DoubleSupplier supplier = new DoubleSupplier() { 
-        @Override 
-        public double getAsDouble() {return get() == idk()? put()? get(): idk(): get();}
-
-        private double get(){return SmartDashboard.getNumber("Wanted Position", Double.NaN);}
-
-        private boolean put(){return SmartDashboard.putNumber("Wanted Position", (liftL.getEncoder().getPosition() * LiftSubsystem._c.RATIO_L + liftR.getEncoder().getPosition() * LiftSubsystem._c.RATIO_R)/2);}
-
-        private double idk(){return Double.NaN;}
-      
-      };
     
-      if(SmartDashboard.getBoolean("Start Dynamo", false)){
-      new DynamicLiftCommand(liftL, supplier, 20000, 0, 5000).schedule();
-      new DynamicLiftCommand(liftL, supplier, 20000, 0, 5000).schedule();
-    }
-
     if(SmartDashboard.getBoolean("Start Dynamo", false)){
       new DynamicDeltaLiftCommand(this::getUpdatedRoll, this::getUpdatedHeight, 20000, 5000, liftL, liftR).schedule();
     }
@@ -158,26 +138,9 @@ public class Robot extends TimedRobot {
     setConstants_l();
     setConstants_r();
     if (SmartDashboard.getBoolean("Zero Lift", false)) {
-      (new EncoderZeroLiftCommand(liftL)).schedule();
-      (new EncoderZeroLiftCommand(liftR)).schedule();
+      (new ZeroLiftCommand(liftL)).schedule();
+      (new ZeroLiftCommand(liftR)).schedule();
       SmartDashboard.putBoolean("Zero Lift", false);
-    }
-  
-    if(SmartDashboard.getBoolean("Start move", false)){
-      double 
-        delta          = SmartDashboard.getNumber("Delta (\u0394) Position", 0     ), 
-        wantedPosition = SmartDashboard.getNumber("Target Position"        , 0     ), 
-        maxVelocity    = SmartDashboard.getNumber("Max Velocity"           , 5000  ),
-        acceleration   = SmartDashboard.getNumber("Acceleration"           , 200000);
-
-      (new DeltaLiftCommand(
-        delta, 
-        wantedPosition, 
-        maxVelocity, 
-        acceleration,
-        liftL, 
-        liftR
-      )).schedule();
     }
     else SmartDashboard.putBoolean("Start move", false);
   }
@@ -316,15 +279,22 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("Min Output", kMinOutput);
     SmartDashboard.putNumber("Set Rotations", 0);}
 
-    private double roll = 0, height = 0;
+    private double liftTiltPrevious = 0, liftTiltChange = 0, heightPrevious = 0, heightChange = 0;
 
     private double getUpdatedRoll(){
-      if(liftJoystick.getRawButton(0)) roll = liftJoystick.getX();
-      return roll;
+      if(liftJoystick.getRawButton(0)) liftTiltChange = liftJoystick.getX() * 50;
+      else {
+        liftTiltPrevious += liftTiltChange;
+        liftTiltChange = 0;
+      }
+      return liftTiltPrevious + liftTiltChange;
     }
-    
     private double getUpdatedHeight(){
-      if(liftJoystick.getRawButton(1)) height = liftJoystick.getY();
-      return height;
+      if(liftJoystick.getRawButton(1)) heightPrevious = liftJoystick.getY() * 100;
+      else{
+        heightPrevious += heightChange;
+        heightChange = 0;
+      }
+      return heightPrevious + heightChange;
     }
 }

@@ -8,14 +8,14 @@ import frc.robot.Robot;
 import frc.robot.subsystems.LiftSubsystem;
 
 public class DynamicLiftCommand extends Command {
-    private LiftSubsystem liftL;
+    private LiftSubsystem lift;
     private final DoubleSupplier xFin;
 
     private double xNow, a, vNext, vNow = 0;
 
     private final double vMax;
     public DynamicLiftCommand(LiftSubsystem liftL, DoubleSupplier xFinal, double accel, double vNow, double vMax) {
-        this.liftL = liftL;
+        this.lift = liftL;
         this.xFin = xFinal;
         this.vNow = vNow;
         this.vMax = vMax;
@@ -24,15 +24,11 @@ public class DynamicLiftCommand extends Command {
 
     @Override
     public void initialize() {
-        addRequirements(liftL);
+        addRequirements(lift);
     }
 
     @Override
     public void execute() {
-        cycle(liftL);
-    }
-
-    public void cycle(LiftSubsystem lift) {
         xNow = lift.getPosition();
 
         double xErr = xFin.getAsDouble() - xNow;
