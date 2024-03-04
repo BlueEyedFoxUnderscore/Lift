@@ -7,20 +7,24 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkPIDController;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.commands.DeltaLiftCommand;
+import frc.robot.commands.DynamicDeltaLiftCommand;
 import frc.robot.commands.DynamicLiftCommand;
 import frc.robot.commands.ZeroLiftCommand;
 import frc.robot.subsystems.LiftSubsystem;
 
 public class Robot extends TimedRobot {
-  
+
   public class _c {
   }
+
+  private static Joystick liftJoystick = new Joystick(0);
 
   public static DigitalInput 
     SRNSwitchL = new DigitalInput(LiftSubsystem._c.SRN_ID_L), 
@@ -100,7 +104,8 @@ public class Robot extends TimedRobot {
 
     SmartDashboard.putBoolean("Zero Lift", false);
     SmartDashboard.putBoolean("Start move", false);
-    SmartDashboard.putBoolean("Lock Lift", false);
+    SmartDashboard.putBoolean("Lock Lift Left", false);
+    SmartDashboard.putBoolean("Lock Lift Right", false);
 
     SmartDashboard.putNumber("Target Position", 0);
     SmartDashboard.putNumber("Max Velocity", 5000);
@@ -110,8 +115,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
-    if(SmartDashboard.getBoolean("Start Dynamo", false))
-      new DynamicLiftCommand(liftL, liftR, new DoubleSupplier() { 
+    DoubleSupplier supplier = new DoubleSupplier() { 
         @Override 
         public double getAsDouble() {return get() == idk()? put()? get(): idk(): get();}
 
@@ -121,17 +125,24 @@ public class Robot extends TimedRobot {
 
         private double idk(){return Double.NaN;}
       
-      }, 20000, 0, 5000).schedule();
+      };
+    if(SmartDashboard.getBoolean("Start Dynamo", false)){
+      new DynamicLiftCommand(liftL, supplier, 20000, 0, 5000).schedule();
+      new DynamicLiftCommand(liftL, supplier, 20000, 0, 5000).schedule();
+    }
+
+    if(SmartDashboard.getBoolean("Start Dynamo", false)){
+      new DynamicDeltaLiftCommand(this::getUpdatedRoll, this::getUpdatedHeight, 20000, 5000, liftL, liftR).schedule();
+    }
+    
     else SmartDashboard.putBoolean("Start Dynamo", false);
 
-    if(SmartDashboard.getBoolean("Lock Lift", true)){
-      liftL.lock();
-      liftR.lock();
-    }
-    else {
-      liftL.unlock();
-      liftR.unlock();
-    }
+    if(SmartDashboard.getBoolean("Lock Lift Left", true)) liftL.lock(); 
+    else liftL.unlock();
+
+    if(SmartDashboard.getBoolean("Lock Lift Right", true)) liftR.lock();
+    else liftR.unlock();
+
     SmartDashboard.putBoolean("SRN Left", SRNSwitchL.get());
     SmartDashboard.putBoolean("SRN Right", SRNSwitchR.get());
     setConstants_l();
@@ -294,4 +305,16 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("Max Output", kMaxOutput);
     SmartDashboard.putNumber("Min Output", kMinOutput);
     SmartDashboard.putNumber("Set Rotations", 0);}
+
+    private double roll = 0, height = 0;
+
+    private double getUpdatedRoll(){
+      if(liftJoystick.getRawButton(0)) roll = liftJoystick.getX();
+      return roll;
+    }
+    
+    private double getUpdatedHeight(){
+      if(liftJoystick.getRawButton(1)) height = liftJoystick.getY();
+      return height;
+    }
 }

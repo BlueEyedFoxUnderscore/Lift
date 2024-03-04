@@ -19,8 +19,8 @@ public class LiftSubsystem extends SubsystemBase {
     private final boolean reversed;
 
     public static class _c {
-        public static final int ID_L = 12, ID_R = 13, SRN_ID_L = 0, SRN_ID_R = 1, RR_ID_L = 0, RR_ID_R = 1;
-        public static final double RATIO_L = 1, RATIO_R = 20f/50f, liftMaxValue = 325;
+        public static final int ID_L = 12, ID_R = 13, SRN_ID_L = 0, SRN_ID_R = 1, RR_ID_L = 8, RR_ID_R = 9;
+        public static final double RATIO_L = 1, RATIO_R = 1, liftMaxValue = 325;
     }
 
     public LiftSubsystem(CANSparkMax motor, DigitalInput SRNSwitch, double ratio, Servo servo, boolean reversed){
