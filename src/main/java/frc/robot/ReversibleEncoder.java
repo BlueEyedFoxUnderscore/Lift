@@ -3,14 +3,14 @@ package frc.robot;
 import com.revrobotics.REVLibError;
 import com.revrobotics.RelativeEncoder;
 
-public class RatioReversibleEncoder implements RelativeEncoder {
+public class ReversibleEncoder implements RelativeEncoder {
 
     final RelativeEncoder e;
     final double multiplier;
 
-    public RatioReversibleEncoder(RelativeEncoder e, double ratio, boolean reversed){
+    public ReversibleEncoder(RelativeEncoder e, boolean reversed){
         this.e = e;
-        multiplier = ratio * (reversed? -1: 1);
+        multiplier = reversed ? -1: 1;
     }
 
     @Override
@@ -20,7 +20,7 @@ public class RatioReversibleEncoder implements RelativeEncoder {
 
     @Override
     public double getVelocity() {
-        return e.getPosition() * multiplier;
+        return e.getVelocity() * multiplier;
     }
 
     @Override
